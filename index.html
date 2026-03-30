@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0d4f2e" />
+  <meta name="description" content="Banani Jai – Personal Finance Tracker. Track borrowed, lent, spent, and income with GitHub sync." />
+  <title>₹ Banani Jai – Finance Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════ APP ROOT ═══════════════ -->
+<div id="app">
+
+  <!-- ══ SETUP SCREEN ══ -->
+  <div id="setup-screen" class="screen active">
+    <div class="setup-wrapper">
+      <div class="setup-logo">
+        <div class="logo-circle">₹</div>
+        <h1>Banani Jai</h1>
+        <p>Your personal finance tracker</p>
+      </div>
+      <div class="setup-card">
+        <h2>Connect GitHub Storage</h2>
+        <p class="setup-desc">Your data will be securely stored in your private GitHub repository.</p>
+
+        <div class="form-group">
+          <label for="repo-input">Repository (username/repo-name)</label>
+          <input type="text" id="repo-input" placeholder="john/my-finance-data" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+          <label for="file-input">File Path in Repo</label>
+          <input type="text" id="file-input" value="data.json" placeholder="data.json" />
+        </div>
+
+        <div id="setup-error" class="error-msg hidden"></div>
+
+        <button id="connect-btn" class="btn-primary" onclick="connectGitHub()">
+          <span id="connect-btn-text">🔗 Connect & Load Data</span>
+          <div id="connect-spinner" class="spinner hidden"></div>
+        </button>
+
+        <div class="setup-footer">
+          <p>🔒 Token can be configured in settings after initial connection.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MAIN APP ══ -->
+  <div id="main-app" class="screen hidden">
+
+    <!-- HEADER -->
+    <header id="app-header">
+      <div class="header-inner">
+        <div class="header-left">
+          <span class="header-title">₹ Banani Jai</span>
+        </div>
+        <div class="header-right">
+          <div class="balance-pill">
+            <span class="balance-label">Balance</span>
+            <span class="balance-amount" id="header-balance">₹0</span>
+          </div>
+          <button class="icon-btn" onclick="openSettings()" title="Settings" id="settings-btn">⚙️</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE: HOME -->
+    <div id="page-home" class="page active">
+      <!-- Summary Cards Grid -->
+      <div class="dashboard-grid">
+        <div class="summary-card card-borrowed" onclick="openDetail('borrowed')" id="card-borrowed">
+          <div class="card-icon">📥</div>
+          <div class="card-body">
+            <div class="card-amount" id="borrowed-total">₹0</div>
+            <div class="card-label">Total Borrowed</div>
+          </div>
+          <div class="card-arrow">›</div>
+        </div>
+        <div class="summary-card card-lent" onclick="openDetail('lent')" id="card-lent">
+          <div class="card-icon">📤</div>
+          <div class="card-body">
+            <div class="card-amount" id="lent-total">₹0</div>
+            <div class="card-label">Total Lent</div>
+          </div>
+          <div class="card-arrow">›</div>
+        </div>
+        <div class="summary-card card-spent" onclick="openDetail('spent')" id="card-spent">
+          <div class="card-icon">💸</div>
+          <div class="card-body">
+            <div class="card-amount" id="spent-total">₹0</div>
+            <div class="card-label">Total Spent</div>
+          </div>
+          <div class="card-arrow">›</div>
+        </div>
+        <div class="summary-card card-income" onclick="openDetail('income')" id="card-income">
+          <div class="card-icon">💰</div>
+          <div class="card-body">
+            <div class="card-amount" id="income-total">₹0</div>
+            <div class="card-label">Total Earned</div>
+          </div>
+          <div class="card-arrow">›</div>
+        </div>
+      </div>
+
+      <!-- Net Balance Card -->
+      <div class="net-balance-card" id="net-balance-card">
+        <div class="net-label">Net Balance <span class="net-formula">(Income − Spent)</span></div>
+        <div class="net-amount" id="net-balance">₹0</div>
+        <div class="net-sub" id="net-sub-label">You're balanced</div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="section-header">
+        <span>Recent Transactions</span>
+        <button class="text-btn" onclick="navigateTo('reports')">See All</button>
+      </div>
+      <div id="recent-list" class="entry-list"></div>
+      <div id="home-empty" class="empty-state hidden">
+        <div class="empty-icon">📊</div>
+        <p>No transactions yet.<br/>Tap <strong>+</strong> to add your first entry!</p>
+      </div>
+    </div>
+
+    <!-- PAGE: REPORTS -->
+    <div id="page-reports" class="page hidden">
+      <div class="page-topbar">
+        <h2>Reports</h2>
+        <div class="filter-row">
+          <select id="report-month-filter" onchange="renderReports()">
+            <option value="all">All Time</option>
+          </select>
+          <select id="report-type-filter" onchange="renderReports()">
+            <option value="all">All Types</option>
+            <option value="borrowed">Borrowed</option>
+            <option value="lent">Lent</option>
+            <option value="spent">Spent</option>
+            <option value="income">Income</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Chart Area -->
+      <div class="chart-card">
+        <div class="chart-title">Monthly Overview</div>
+        <canvas id="bar-chart" width="320" height="180"></canvas>
+      </div>
+
+      <!-- Report Totals -->
+      <div class="report-totals" id="report-totals"></div>
+
+      <!-- Entries List -->
+      <div id="reports-list" class="entry-list"></div>
+      <div id="reports-empty" class="empty-state hidden">
+        <div class="empty-icon">🔍</div>
+        <p>No entries match your filter.</p>
+      </div>
+    </div>
+
+    <!-- PAGE: REMINDERS -->
+    <div id="page-reminders" class="page hidden">
+      <div class="page-topbar">
+        <h2>Reminders</h2>
+        <button class="btn-small" onclick="openAddReminder()">+ Add</button>
+      </div>
+      <div id="reminders-list"></div>
+      <div id="reminders-empty" class="empty-state">
+        <div class="empty-icon">🔔</div>
+        <p>No reminders yet.<br/>Add reminders for money you owe or are owed.</p>
+      </div>
+    </div>
+
+    <!-- PAGE: SETTINGS -->
+    <div id="page-settings" class="page hidden">
+      <div class="page-topbar"><h2>Settings</h2></div>
+      <div class="settings-section">
+        <div class="settings-label">GitHub Connection</div>
+        <div class="settings-item">
+          <span>Repository</span>
+          <span class="settings-value" id="settings-repo">—</span>
+        </div>
+        <div class="settings-item">
+          <span>File Path</span>
+          <span class="settings-value" id="settings-file">—</span>
+        </div>
+        <div class="settings-item">
+          <span>Token</span>
+          <span class="settings-value">●●●● <button class="text-btn" onclick="changeToken()" style="font-size:12px">Change</button></span>
+        </div>
+        <button class="btn-outline" onclick="syncNow()">🔄 Sync Now</button>
+        <button class="btn-danger" onclick="disconnectGitHub()">🔌 Disconnect</button>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">App Info</div>
+        <div class="settings-item"><span>Version</span><span class="settings-value">1.0.0</span></div>
+        <div class="settings-item"><span>Entries</span><span class="settings-value" id="settings-count">0</span></div>
+        <div class="settings-item"><span>Last Sync</span><span class="settings-value" id="settings-sync">Never</span></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">Data</div>
+        <button class="btn-outline" onclick="exportData()">📤 Export JSON</button>
+      </div>
+    </div>
+
+    <!-- PAGE: DETAIL -->
+    <div id="page-detail" class="page hidden">
+      <div class="page-topbar detail-topbar">
+        <button class="back-btn" onclick="closeDetail()">‹ Back</button>
+        <h2 id="detail-title">Detail</h2>
+        <button class="btn-small" id="detail-add-btn" onclick="openAddEntry()">+ Add</button>
+      </div>
+      <div class="filter-row padded">
+        <input type="text" id="detail-search" placeholder="Search entries..." oninput="renderDetail()" />
+        <input type="month" id="detail-month" onchange="renderDetail()" />
+      </div>
+      <div id="detail-list" class="entry-list"></div>
+      <div id="detail-empty" class="empty-state hidden">
+        <div class="empty-icon">📭</div>
+        <p>No entries found.</p>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" onclick="openAddEntry()" id="fab-btn" title="Add Entry">+</button>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" onclick="navigateTo('home')" id="nav-home">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-item" onclick="navigateTo('reports')" id="nav-reports">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Reports</span>
+      </button>
+      <button class="nav-item" onclick="navigateTo('reminders')" id="nav-reminders">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label">Reminders</span>
+      </button>
+      <button class="nav-item" onclick="navigateTo('settings')" id="nav-settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </button>
+    </nav>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Add/Edit Entry Modal -->
+<div id="entry-modal" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event,'entry-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3 id="entry-modal-title">Add Entry</h3>
+      <button class="close-btn" onclick="closeModal('entry-modal')">✕</button>
+    </div>
+
+    <div class="type-tabs">
+      <button class="type-tab active" data-type="borrowed" onclick="selectType(this,'borrowed')">📥 Borrowed</button>
+      <button class="type-tab" data-type="lent" onclick="selectType(this,'lent')">📤 Lent</button>
+      <button class="type-tab" data-type="spent" onclick="selectType(this,'spent')">💸 Spent</button>
+      <button class="type-tab" data-type="income" onclick="selectType(this,'income')">💰 Income</button>
+    </div>
+
+    <input type="hidden" id="entry-type" value="borrowed" />
+    <input type="hidden" id="entry-id" value="" />
+
+    <div class="form-group">
+      <label for="entry-amount">Amount (₹)</label>
+      <input type="number" id="entry-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal" />
+    </div>
+    <div class="form-group">
+      <label for="entry-person">Name / Party</label>
+      <input type="text" id="entry-person" placeholder="e.g. Rahul, Rent, etc." />
+    </div>
+    <div class="form-group">
+      <label for="entry-note">Note</label>
+      <input type="text" id="entry-note" placeholder="Optional note..." />
+    </div>
+    <div class="form-group">
+      <label for="entry-date">Date</label>
+      <input type="date" id="entry-date" />
+    </div>
+
+    <div id="entry-error" class="error-msg hidden"></div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveEntry()">
+        <span id="save-btn-text">Save Entry</span>
+        <div id="save-spinner" class="spinner hidden"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Detail / Delete Modal -->
+<div id="view-modal" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event,'view-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3>Entry Details</h3>
+      <button class="close-btn" onclick="closeModal('view-modal')">✕</button>
+    </div>
+    <div id="view-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-outline" onclick="editCurrentEntry()">✏️ Edit</button>
+      <button class="btn-danger" onclick="deleteCurrentEntry()">
+        <span id="delete-btn-text">🗑️ Delete</span>
+        <div id="delete-spinner" class="spinner hidden"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Reminder Modal -->
+<div id="reminder-modal" class="modal-overlay hidden" onclick="closeModalOnBackdrop(event,'reminder-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3>Add Reminder</h3>
+      <button class="close-btn" onclick="closeModal('reminder-modal')">✕</button>
+    </div>
+    <div class="form-group">
+      <label for="rem-title">Reminder Title</label>
+      <input type="text" id="rem-title" placeholder="e.g. Collect from Ankit" />
+    </div>
+    <div class="form-group">
+      <label for="rem-amount">Amount (₹)</label>
+      <input type="number" id="rem-amount" placeholder="0" min="0" inputmode="decimal" />
+    </div>
+    <div class="form-group">
+      <label for="rem-date">Due Date</label>
+      <input type="date" id="rem-date" />
+    </div>
+    <div class="form-group">
+      <label for="rem-note">Note</label>
+      <input type="text" id="rem-note" placeholder="Optional..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveReminder()">Save Reminder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- Sync Indicator -->
+<div id="sync-bar" class="sync-bar hidden">
+  <div class="spinner-sm"></div>
+  <span id="sync-msg">Syncing with GitHub…</span>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
