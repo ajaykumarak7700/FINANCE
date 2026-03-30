@@ -30,45 +30,49 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function autoConnect() {
-  // 1. CONFIG file se lo (sabse pehle — personal use ke liye hardcoded)
-  const token    = (typeof CONFIG !== 'undefined' && CONFIG.token && !CONFIG.token.includes('YAHAN'))
-                   ? CONFIG.token
-                   : localStorage.getItem('bj_token');
-  const repo     = (typeof CONFIG !== 'undefined' && CONFIG.repo && !CONFIG.repo.includes('YAHAN'))
-                   ? CONFIG.repo
-                   : localStorage.getItem('bj_repo');
-  const filePath = (typeof CONFIG !== 'undefined' && CONFIG.filePath)
-                   ? CONFIG.filePath
-                   : (localStorage.getItem('bj_file') || 'data.json');
+  // CONFIG file se lo (PC pe hardcoded), warna localStorage
+  const savedToken = (typeof CONFIG !== 'undefined' && CONFIG.token && !CONFIG.token.includes('YAHAN'))
+                     ? CONFIG.token
+                     : localStorage.getItem('bj_token');
+  const savedRepo  = (typeof CONFIG !== 'undefined' && CONFIG.repo && !CONFIG.repo.includes('YAHAN'))
+                     ? CONFIG.repo
+                     : localStorage.getItem('bj_repo');
+  const savedFile  = (typeof CONFIG !== 'undefined' && CONFIG.filePath)
+                     ? CONFIG.filePath
+                     : (localStorage.getItem('bj_file') || 'data.json');
 
-  if (!token || !repo) {
-    // Config fill nahi hua — setup screen dikhao
-    return;
+  // Token field: agar token hai toh chhupa do, nahi hai toh dikhao
+  const tokenGroup = document.getElementById('token-group');
+  if (savedToken) {
+    tokenGroup.style.display = 'none'; // PC / already connected device
+  } else {
+    tokenGroup.style.display = '';     // Mobile / naya device — token maango
   }
 
-  STATE.token    = token;
-  STATE.repo     = repo;
-  STATE.filePath = filePath;
+  // Repo pre-fill karo agar saved hai
+  if (savedRepo) document.getElementById('repo-input').value = savedRepo;
+  if (savedFile) document.getElementById('file-input').value = savedFile;
 
-  // Setup screen hide karo, loading dikhao
+  // Agar dono hain toh seedha connect karo
+  if (!savedToken || !savedRepo) return;
+
+  STATE.token    = savedToken;
+  STATE.repo     = savedRepo;
+  STATE.filePath = savedFile;
+
   document.getElementById('setup-screen').classList.add('hidden');
   document.getElementById('setup-screen').classList.remove('active');
 
-  // Seedha connect karo
   try {
     await loadFromGitHub();
-    // Token save bhi kar lo localStorage mein (backup ke liye)
-    localStorage.setItem('bj_token', token);
-    localStorage.setItem('bj_repo', repo);
-    localStorage.setItem('bj_file', filePath);
+    localStorage.setItem('bj_token', savedToken);
+    localStorage.setItem('bj_repo', savedRepo);
+    localStorage.setItem('bj_file', savedFile);
     launchApp();
   } catch (err) {
-    // Fail hui toh setup screen wapas dikhao with error
     document.getElementById('setup-screen').classList.remove('hidden');
     document.getElementById('setup-screen').classList.add('active');
-    document.getElementById('repo-input').value = repo;
-    document.getElementById('file-input').value = filePath;
-    document.getElementById('setup-error').textContent = '❌ Auto-connect fail: ' + err.message;
+    document.getElementById('setup-error').textContent = '❌ Connect fail: ' + err.message;
     document.getElementById('setup-error').classList.remove('hidden');
   }
 }
@@ -82,7 +86,11 @@ function registerSW() {
 // ══════════════════════ SETUP / GITHUB ═══════════════
 
 async function connectGitHub() {
-  const token    = localStorage.getItem('bj_token');
+  // Token: pehle pat-input se lo (mobile), nahi toh localStorage/CONFIG se
+  const inputToken = document.getElementById('pat-input').value.trim();
+  const savedToken = (typeof CONFIG !== 'undefined' && CONFIG.token && !CONFIG.token.includes('YAHAN'))
+                     ? CONFIG.token : localStorage.getItem('bj_token');
+  const token    = inputToken || savedToken;
   const repo     = document.getElementById('repo-input').value.trim();
   const filePath = document.getElementById('file-input').value.trim() || 'data.json';
   const errEl    = document.getElementById('setup-error');
@@ -92,19 +100,10 @@ async function connectGitHub() {
 
   errEl.classList.add('hidden');
 
-  if (!token) {
-    showSetupError('⚠️ GitHub Token pehle set karo — settings mein jaake "Change" dabao.');
-    // Token set karwao prompt se
-    const newToken = prompt('GitHub Personal Access Token daalo (ghp_...):');
-    if (!newToken || !newToken.trim()) return;
-    localStorage.setItem('bj_token', newToken.trim());
-  }
+  if (!token)  { showSetupError('⚠️ GitHub Token daalo (ghp_...)'); return; }
+  if (!repo || !repo.includes('/')) { showSetupError('Repo format: username/repo-name'); return; }
 
-  const finalToken = localStorage.getItem('bj_token');
-
-  if (!repo || !repo.includes('/')) { showSetupError('Please enter repo as: username/repo-name'); return; }
-
-  STATE.token    = finalToken;
+  STATE.token    = token;
   STATE.repo     = repo;
   STATE.filePath = filePath;
 
@@ -114,13 +113,13 @@ async function connectGitHub() {
 
   try {
     await loadFromGitHub();
-    // Success — localStorage mein permanently save karo
-    localStorage.setItem('bj_token', finalToken);
+    // Hamesha ke liye save karo
+    localStorage.setItem('bj_token', token);
     localStorage.setItem('bj_repo', repo);
     localStorage.setItem('bj_file', filePath);
     launchApp();
   } catch (err) {
-    showSetupError(err.message || 'Failed to connect. Check your token and repo name.');
+    showSetupError(err.message || 'Connect fail. Token aur repo check karo.');
     STATE.token = null;
   } finally {
     btn.disabled = false;

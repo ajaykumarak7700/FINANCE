@@ -29,11 +29,21 @@
       </div>
       <div class="setup-card">
         <h2>Connect GitHub Storage</h2>
-        <p class="setup-desc">Your data will be securely stored in your private GitHub repository.</p>
+        <p class="setup-desc">Apna GitHub repository connect karo — data securely sync hoga.</p>
+
+        <!-- Token field: sirf tab dikhega jab saved token nahi milega -->
+        <div class="form-group" id="token-group">
+          <label for="pat-input">GitHub Personal Access Token</label>
+          <div class="input-wrap">
+            <input type="password" id="pat-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+            <button class="eye-btn" onclick="togglePassword('pat-input', this)" title="Show/hide">👁</button>
+          </div>
+          <span class="hint">GitHub → Settings → Developer settings → Tokens (classic) → repo scope</span>
+        </div>
 
         <div class="form-group">
           <label for="repo-input">Repository (username/repo-name)</label>
-          <input type="text" id="repo-input" placeholder="john/my-finance-data" autocomplete="off" />
+          <input type="text" id="repo-input" placeholder="ajaykumarak7700/FINANCE" autocomplete="off" />
         </div>
 
         <div class="form-group">
@@ -44,12 +54,12 @@
         <div id="setup-error" class="error-msg hidden"></div>
 
         <button id="connect-btn" class="btn-primary" onclick="connectGitHub()">
-          <span id="connect-btn-text">🔗 Connect & Load Data</span>
+          <span id="connect-btn-text">🔗 Connect &amp; Load Data</span>
           <div id="connect-spinner" class="spinner hidden"></div>
         </button>
 
         <div class="setup-footer">
-          <p>🔒 Token can be configured in settings after initial connection.</p>
+          <p>🔒 Ek baar connect karo — dobara nahi puchega!</p>
         </div>
       </div>
     </div>
