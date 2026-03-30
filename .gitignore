@@ -1,1 +1,2 @@
-# intentionally empty
+# Ignore config file so no tokens get pushed to GitHub
+config.json

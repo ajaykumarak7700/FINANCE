@@ -30,6 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function autoConnect() {
+  // Check URL parameters first for auto-login links
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('token') && urlParams.has('repo')) {
+    localStorage.setItem('bj_token', urlParams.get('token'));
+    localStorage.setItem('bj_repo', urlParams.get('repo'));
+    localStorage.setItem('bj_file', urlParams.get('file') || 'data.json');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
   // CONFIG file se lo (PC pe hardcoded), warna localStorage
   const savedToken = (typeof CONFIG !== 'undefined' && CONFIG.token && !CONFIG.token.includes('YAHAN'))
                      ? CONFIG.token
@@ -41,20 +50,17 @@ async function autoConnect() {
                      ? CONFIG.filePath
                      : (localStorage.getItem('bj_file') || 'data.json');
 
-  // Token field: agar token hai toh chhupa do, nahi hai toh dikhao
   const tokenGroup = document.getElementById('token-group');
-  if (savedToken) {
-    tokenGroup.style.display = 'none'; // PC / already connected device
-  } else {
-    tokenGroup.style.display = '';     // Mobile / naya device — token maango
-  }
 
   // Repo pre-fill karo agar saved hai
   if (savedRepo) document.getElementById('repo-input').value = savedRepo;
   if (savedFile) document.getElementById('file-input').value = savedFile;
 
   // Agar dono hain toh seedha connect karo
-  if (!savedToken || !savedRepo) return;
+  if (!savedToken || !savedRepo) {
+    if (tokenGroup) tokenGroup.style.display = '';
+    return;
+  }
 
   STATE.token    = savedToken;
   STATE.repo     = savedRepo;
@@ -70,10 +76,12 @@ async function autoConnect() {
     localStorage.setItem('bj_file', savedFile);
     launchApp();
   } catch (err) {
+    // Fail ho gaya (jaise invalid/revoked token), toh setup screen dikhao aur token field unhide karo
     document.getElementById('setup-screen').classList.remove('hidden');
     document.getElementById('setup-screen').classList.add('active');
-    document.getElementById('setup-error').textContent = '❌ Connect fail: ' + err.message;
+    document.getElementById('setup-error').textContent = '❌ Connect fail: ' + err.message + ' (Token invalid ya expire ho gaya hai)';
     document.getElementById('setup-error').classList.remove('hidden');
+    if (tokenGroup) tokenGroup.style.display = '';
   }
 }
 
